@@ -16,8 +16,8 @@
                     </v-card-item>
 
                     <v-card-actions v-if="!testComplete(t.id)">
-                        <v-btn style=" position: absolute; bottom: 10px;">
-                            Начать тест
+                        <v-btn @click="goToTest(t.id)" style=" position: absolute; bottom: 10px;">
+                            Перейти к тесту
                         </v-btn>
                     </v-card-actions>
                     <v-menu v-if="testComplete(t.id)" :close-on-content-click="false">
@@ -46,6 +46,35 @@ import { useRouter, useRoute } from 'vue-router'
 import router from "@/router/index"
 import BarChart from '@/components/BarChart.vue';
 
+
+interface Course {
+    id: number,
+    name:string,
+    img:string,
+    tests: Test[]
+}
+
+interface Test {
+    id: number,
+    name:string,
+    teacher: string
+}
+
+
+interface CourseComplete {
+    id: number,
+    tests: TestComplete[]
+}
+
+interface TestComplete {
+    id: number,
+    results: Results
+}
+
+interface Results {
+    [key: string]: number;
+}
+
 export default {
     components: { BarChart },
     data: () => ({
@@ -53,16 +82,16 @@ export default {
         chartOptions: {
             responsive: true
         },
-        visible: false,
         isLogged: useAppStore().isLogged,
         usersCourse: useUserStore().courses,
-
+        route: useRoute(),
         tests: {
             getTests: function () {
                 const route = useRoute()
 
-                let cource = useСoursesStore().courses.filter(c => {
-                    return c.id == route.params.id;
+                let courseId = parseInt(route.params.id as string);
+                let cource = useСoursesStore().courses.filter((c: Course) => {
+                    return c.id == courseId;
                 });
                 return cource[0].tests
             },
@@ -74,10 +103,11 @@ export default {
     methods: {
         testComplete(id: number): boolean {
             const route: any = useRoute()
-            if(!this.usersCourse.find(el => el.id == route.params.id)){
+            if (!this.usersCourse.find(el => el.id == route.params.id)) {
                 return false
             }
-            let course = this.usersCourse.find(el => el.id == route.params.id).tests.find(el => el.id == id)
+            let courseId = parseInt(route.params.id as string);
+            let course = this.usersCourse.find((el: CourseComplete) => el.id == courseId)?.tests.find((el: CourseComplete)  => el.id == id)
             return course ? true : false
         },
         chartData(id: number): object {
@@ -97,6 +127,9 @@ export default {
             }
             chartData.datasets[0].data.push(100)
             return chartData
+        },
+        goToTest(id: number){
+            router.push(`/course/${this.route.params.id}/${id}`)
         }
     },
 }

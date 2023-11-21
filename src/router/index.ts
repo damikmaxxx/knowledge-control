@@ -46,6 +46,17 @@ const routes = [
       },
     ],
   },
+  {
+    path: '/course/:course/:test',
+    component: () => import('@/layouts/default/Default.vue'),
+    children: [
+      {
+        path: '',
+        name: 'Test',
+        component: () => import('@/components/Test.vue'),
+      },
+    ],
+  },
 ]
 
 const router = createRouter({

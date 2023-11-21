@@ -66,21 +66,6 @@ export default {
       console.log(id)
     },
     chartData(id: number): object {
-      // if (this.usersCourse.find(el => el.id == id).tests) {
-      //   let chartData = {
-      //     labels: [],
-      //     datasets: [{
-      //       label: 'Знания в %',
-      //       backgroundColor: ['#36A2EB'],
-      //       data: []
-      //     }],
-
-      //   }
-      //   return chartData
-      // }
-      // else {
-
-      // }
       let tests: Array<object> = this.usersCourse.find(el => el.id == id).tests;
       console.log(tests)
 
