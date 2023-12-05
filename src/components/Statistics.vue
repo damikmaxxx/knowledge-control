@@ -60,12 +60,16 @@ export default {
   },
   created() {
     !useAppStore().isLogged && router.push('/login')
+    
   },
   methods: {
     checkResult: (id: number) => {
       console.log(id)
     },
     chartData(id: number): object {
+      
+
+
       let tests: Array<object> = this.usersCourse.find(el => el.id == id).tests;
       console.log(tests)
 
@@ -73,7 +77,7 @@ export default {
         labels: [],
         datasets: [{
           label: 'Знания в %',
-          backgroundColor: ['#36A2EB'],
+          backgroundColor: [],
           data: []
         }],
       }
@@ -82,7 +86,6 @@ export default {
       for (let test of tests) {
         for (let r in test.results) {
           diffData[r] += test.results[r]
-
         }
         diffCount++
       }
@@ -91,9 +94,18 @@ export default {
         diffData[d] = diffData[d] / diffCount
 
       }
+      let arrColor = {60:'#18222C',75:"#586198",85:"#7FA8D4",101:"#C370CA"}
       for (let key in diffData) {
         chartData.labels.push(key)
         chartData.datasets[0].data.push(diffData[key])
+        for (let points in arrColor) {
+          if (diffData[key] < Number(points)) {
+
+            chartData.datasets[0].backgroundColor.push(arrColor[points])
+            break;
+          }
+
+        }
       }
       chartData.datasets[0].data.push(100)
       return chartData

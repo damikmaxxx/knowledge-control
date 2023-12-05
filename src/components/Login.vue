@@ -67,25 +67,25 @@ export default {
                 return
             }
             firebaseAPI.getUsersByEmailAndPass(this.email, this.password).then(value => {
-                console.log(value.results)
-                if (value.no == "") {
+                let dateInfo = value[0]
+                let id = value[1]
+                console.log(value)
+                if (dateInfo.no == "") {
                     console.log("Неправильный ввод")
                     this.showNotification("Неправильный логин или пароль", "error");
                     return
                 }
                 else {
-                    console.log("Вы вошли")
-                    for(let results in value.results){
+                    console.log(dateInfo.results)
+                    for(let results in dateInfo.results){
                         console.log(results)
-                        for(let r in value.results[results]){
+                        for(let r in dateInfo.results[results]){
                             console.log(r)
-                            useUserStore().addCompleteTest(results,r,value.results[results][r])
+                            useUserStore().addCompleteTest(results,r,dateInfo.results[results][r])
                         }
                     }
-                    
                     useAppStore().setIsLogged(true)
-                    useAppStore().setIsFullName(value.fullName)
-                    console.log(useUserStore().courses)
+                    useAppStore().setIsActiveUser(id,dateInfo.fullName)
                     router.push('/')
                 }
                 useUserStore

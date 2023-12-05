@@ -37,7 +37,17 @@
     </v-container>
 </template>
 
+
 <script lang="ts">
+
+interface User{
+    id:string,
+    fullName: string,
+    email: string,
+    password: string,
+    teacher: boolean     
+}
+
 import { useAppStore } from "@/store/AppStore"
 import router from "@/router/index"
 import {firebaseAPI} from "@/api/firebaseApi"
@@ -71,7 +81,9 @@ export default {
             if ((this.passwordTop != this.passwordBottom) || this.passwordTop == "") {
                 return
             }
-            let newUser = {
+            let newId = String(Date.now())
+            let newUser: User = {
+                id:newId,
                 email: this.email,
                 fullName: this.fullName,
                 password: this.passwordTop,
@@ -80,7 +92,7 @@ export default {
             firebaseAPI.addNewUser(newUser);    
 
             useAppStore().setIsLogged(true)
-            useAppStore().setIsFullName(this.fullName)
+            useAppStore().setIsActiveUser(newId,this.fullName)
             router.push('/')
         },
     }

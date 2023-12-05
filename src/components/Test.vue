@@ -9,7 +9,7 @@
                             <div class="text-overline mb-1">
                             </div>
                             <div class="text-h6 mb-1">
-                                Математический анализ
+                                {{ courseName }}
                             </div>
                             <div class="text-caption"><b>Курс:</b> Математика</div>
                             <div class="text-caption"><b>Ограничение по времени:</b> 10 минут</div>
@@ -29,7 +29,7 @@
                 </v-card>
 
             </v-col>
-            <v-col cols="12" sm="4" v-if="testFase == allTypesFases[1]">
+            <v-col cols="12" sm="4" v-if="testFase == allTypesFases[1] && numbers != 0">
                 <v-card class="mx-auto mb-8" min-height="200" max-width="454">
 
                     <v-card-item>
@@ -55,6 +55,7 @@
 
 
             </v-col>
+
             <v-col cols="12" sm="4" v-if="testFase == allTypesFases[2]">
                 <v-card class="mx-auto mb-8" min-height="200" max-width="454">
 
@@ -80,8 +81,8 @@
 
             </v-col>
         </v-row>
-        <v-card v-if="testFase == allTypesFases[1]" class=" text-center pa-3 " style="overflow-y: auto;" min-height="400"
-            max-height="400" max-width="350">
+        <v-card v-if="testFase == allTypesFases[1] && numbers != 0" class=" text-center pa-3 " style="overflow-y: auto;"
+            min-height="400" max-height="400" max-width="350">
             <div class="text-h6 mb-4 mt-2">
                 Навигация между вопросами
             </div>
@@ -133,75 +134,36 @@ interface TestComplete {
 interface Results {
     [key: string]: number;
 }
+interface RequestTest {
+    time: number,
+    questions: Question[],
+}
+interface Question {
+    num: number;
+    answerMode: string;
+    question: string;
+    correctAnswer: string[];
+    answerOptions?: string[];
+    rewards: {
+        [key: string]: number;
+    };
+}
 
 export default {
+
     components: { BarChart },
     data: () => ({
         test: {
-            time: 10,
-            questions: [{
-                num: 1,
-                answerMode: "text",
-                question: "Чему равна производная функции f(x) = 3x^2 при x = 2?",
-                correctAnswer: ["12"],
-                rewards: {
-                    "CHL": 2,
-                    "POL": 3,
-                    "UMW": 4,
-                },
-            },
-            {
-                num: 2,
-                answerMode: "text",
-                question: "Какие значения x удовлетворяют уравнению 2x - 5 = 0",
-                correctAnswer: ["2.5", "2,5"],
-                rewards: {
-                    "CHL": 1,
-                    "POL": 1,
-                    "UMW": 1,
-                },
-            },
-            {
-                num: 3,
-                answerMode: "options",
-                answerOptions: ["бесконечность", "не существует", "равен конечному числу"],
-                question: "Каков предел функции g(x) = 2x + 1 при x стремящемся к бесконечности?",
-                correctAnswer: ["бесконечность"],
-                rewards: {
-                    "CHL": 2,
-                    "POL": 2,
-                    "UMW": 2,
-                },
-            },
-            {
-                num: 4,
-                answerMode: "options",
-                question: "Чему равна интегральная сумма функции f(x) = 4x^2 на отрезке [0, 2] при разбиении интервала на 4 равные части?",
-                answerOptions: ["4/3", "2/3", "1/3", "3"],
-                correctAnswer: ["4/3", "1,33"],
-                rewards: {
-                    "CHL": 2,
-                    "POL": 3,
-                    "UMW": 3,
-                },
-            },
-            {
-                num: 5,
-                question: "Как выразить производную функции f(x) = x^3 по x с помощью степенного правила дифференцирования?",
-                correctAnswer: ["3x^2", "3*x^2", "3*x*x"],
-                rewards: {
-                    "CHL": 2,
-                    "POL": 1,
-                    "UMW": 4,
-                },
-            }]
+            time: 0,
+            questions: [],
         },
+        courseName: "",
         userAnwsers: {},
-        results:{},
+        results: {},
         allTypesFases: ["start", "solve", "end"],
         testFase: "start",
         inputAnswer: "",
-        numbers: 5,
+        numbers: 0,
         activeQuestion: 1,
         activeTest: false,
         endTest: false,
@@ -213,12 +175,18 @@ export default {
         usersCourse: useUserStore().courses,
     }),
     created() {
-        // firebaseAPI.addNewTest(1,2)
+        // firebaseAPI.addNewTest(3, 2)
+
+
+        firebaseAPI.getQuestions(Number(this.route.params.course), Number(this.route.params.test)).then((result: RequestTest) => {
+            this.test.time = result.time;
+            this.test.questions = result.questions;
+            this.numbers = result.questions.length;
+        });
         console.log(this.route.params)
         console.log()
         !useAppStore().isLogged && router.push('/')
-        
-
+        this.getCourseInfo()
     },
     computed: {
         getNumbersArray(): Array<number> {
@@ -231,6 +199,9 @@ export default {
         },
         goBack() {
             router.push(`/course/${this.route.params.course}`)
+        },
+        getCourseInfo() {
+            this.route.params.course
         },
         changeActiveQuestion(num: number) {
             this.userAnwsers[this.activeQuestion] = this.inputAnswer
@@ -247,11 +218,24 @@ export default {
             return this.test.questions.find(el => el.num == this.activeQuestion)
         },
         endTestFunc() {
-            this.calculationResults()
+
             this.userAnwsers[this.activeQuestion] = this.inputAnswer
+
+            this.calculationResults()
+            firebaseAPI.addNewResults(this.results, Number(useAppStore().id), Number(this.route.params.course), Number(this.route.params.test))
             this.testFase = this.allTypesFases[2]
+            let id = useAppStore().id;
+            firebaseAPI.getUsersRewards(Number(id)).then((value) => {
+                for (let results in value) {
+                    console.log(results)
+                    for (let r in value[results]) {
+                        console.log(r)
+                        useUserStore().addCompleteTest(results, r, value[results][r])
+                    }
+                }
+            })
         },
-        calculationResults(){
+        calculationResults() {
             let allRewards = {}
             let userRewards = {}
             this.test.questions.forEach(el => {
@@ -271,15 +255,17 @@ export default {
                 let questionKey = this.test.questions.find(el => el.num == key)
                 if (this.userAnwsers[key] == undefined || questionKey == undefined) continue
                 if (questionKey.correctAnswer.find(el => el == this.userAnwsers[key])) {
-                    let rewards = this.test.questions.find(el => el.num == key).rewards 
+                    let rewards = this.test.questions.find(el => el.num == key).rewards
                     for (let key in rewards) {
                         userRewards[key] += rewards[key]
 
                     }
                 }
             }
+            console.log(allRewards,userRewards)
             for (let key in userRewards) {
-                userRewards[key] = userRewards[key]/allRewards[key] * 100
+                userRewards[key] = userRewards[key] / allRewards[key] * 100
+
             }
             this.results = userRewards
         },
@@ -290,14 +276,23 @@ export default {
                 datasets: [
                     {
                         label: 'Знания в %',
-                        backgroundColor: '#36A2EB',
+                        backgroundColor: [],
                         data: []
                     }
                 ]
             }
+            let arrColor = { 60: '#18222C', 75: "#586198", 85: "#7FA8D4", 101: "#C370CA" }
             for (let key in this.results) {
                 chartData.labels.push(key)
                 chartData.datasets[0].data.push(this.results[key])
+                for (let points in arrColor) {
+                    if (this.results[key] < Number(points)) {
+
+                        chartData.datasets[0].backgroundColor.push(arrColor[points])
+                        break;
+                    }
+
+                }
             }
             chartData.datasets[0].data.push(100)
             return chartData

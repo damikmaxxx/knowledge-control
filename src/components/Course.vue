@@ -100,6 +100,7 @@ export default {
     created() {
         !useAppStore().isLogged && router.push('/')
     },
+    
     methods: {
         testComplete(id: number): boolean {
             const route: any = useRoute()
@@ -111,19 +112,31 @@ export default {
             return course ? true : false
         },
         chartData(id: number): object {
+
             const route: any = useRoute()
-            let test = this.usersCourse[route.params.id - 1].tests.find(el => el.id == id);
+            console.log(this.usersCourse)
+            let test = this.usersCourse.find(el => el.id == route.params.id).tests.find(el => el.id == id);
             let chartData = {
                 labels: [],
                 datasets: [{
                     label: 'Знания в %',
-                    backgroundColor: ['#36A2EB'],
+                    backgroundColor: [],
                     data: []
                 }],
             }
+            let arrColor = {60:'#18222C',75:"#586198",85:"#7FA8D4",101:"#C370CA"}
+            
             for (let key in test.results) {
                 chartData.labels.push(key)
                 chartData.datasets[0].data.push(test.results[key])
+                for(let points in arrColor){
+                    if(test.results[key] < Number(points)){
+                        chartData.datasets[0].backgroundColor.push(arrColor[points])
+                        break;
+                    }
+
+                }
+
             }
             chartData.datasets[0].data.push(100)
             return chartData
