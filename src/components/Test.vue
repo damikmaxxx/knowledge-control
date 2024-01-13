@@ -218,7 +218,6 @@ export default {
             return this.test.questions.find(el => el.num == this.activeQuestion)
         },
         endTestFunc() {
-
             this.userAnwsers[this.activeQuestion] = this.inputAnswer
 
             this.calculationResults()

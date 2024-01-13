@@ -85,7 +85,7 @@ export default {
                         }
                     }
                     useAppStore().setIsLogged(true)
-                    useAppStore().setIsActiveUser(id,dateInfo.fullName)
+                    useAppStore().setIsActiveUser(id,dateInfo.fullName,dateInfo.teacher)
                     router.push('/')
                 }
                 useUserStore

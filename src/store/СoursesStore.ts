@@ -18,7 +18,6 @@ export const useСoursesStore = defineStore('coursesStore', {
       {
         id:2,
         name: "Русский язык",
-
         img:"https://kartinki.pics/uploads/posts/2021-07/thumbs/1626204693_18-kartinkin-com-p-fon-russkii-yazik-krasivo-20.jpg",
         tests:[
           {name:"Грамматика",id:1, teacher: "Матвиенко Милослава Семеновна",},
@@ -43,8 +42,8 @@ export const useСoursesStore = defineStore('coursesStore', {
     ]
   }),
   actions: {
-    setIsLogged(set: boolean) {
-
-    }
+    addCourse(id_: number, name_:string,img_:string = "") {
+      this.courses.push({id:id_,name:name_,img:img_, tests:[]})
+    },
   }
 })

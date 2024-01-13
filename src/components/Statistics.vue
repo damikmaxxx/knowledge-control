@@ -2,7 +2,7 @@
   <v-container class="fill-height">
     <v-row no-gutters justify="center">
 
-      <v-col v-if="isLogged" v-for="c in courses" :key="c.id" cols="12" sm="4">
+      <v-col v-if="userInfo.isLogged" v-for="c in courses" :key="c.id" cols="12" sm="4">
         <v-card @click="$router.push(`/course/${c.id}`)" class="mx-auto mt-8 ml-4 mr-4" max-width="344">
           <v-img max-height="200" min-height="200" v-bind:src="c.img"></v-img>
 
@@ -33,7 +33,32 @@
           </v-overlay>
         </v-card>
       </v-col>
+      <v-col cols="12" sm="4" v-if="userInfo.isLogged && userInfo.isTeacher">
+        <v-card class="mx-auto mt-8 ml-4 mr-4" max-width="344" @click="createDialogCourse" style="text-align: center;">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100" height="100" fill="none"
+            stroke="#1976D2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg> </v-card>
+      </v-col>
 
+      <!-- Модальное окно -->
+      <v-dialog v-model="showCreateCourseDialog" max-width="600">
+        <v-card>
+          <v-card-title>Создание нового курса</v-card-title>
+          <v-card-text>
+            <v-text-field :rules="[v => !!v || 'Название курса обязательно к заполнению']" v-model="newCourse.name" label="Название курса"></v-text-field>
+            <v-text-field v-model="newCourse.image" label="Ссылка на изображение"></v-text-field>
+            <v-card-text>
+              Преподователь: <b>{{ userInfo.fullName }}</b>
+            </v-card-text>
+          </v-card-text>
+          <v-card-actions>
+            <v-btn @click="createCourse" :disabled="!isFormValid">Создать</v-btn>
+            <v-btn @click="showCreateCourseDialog = false">Закрыть</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
     </v-row>
   </v-container>
 </template>
@@ -53,21 +78,45 @@ export default {
         responsive: true
       },
       visible: false,
-      isLogged: useAppStore().isLogged,
+      
       courses: useСoursesStore().courses,
       usersCourse: useUserStore().courses,
+      userInfo: {
+        isLogged: useAppStore().isLogged,
+        fullName: useAppStore().fullName,
+        isTeacher:useAppStore().teacher,
+      },
+      showCreateCourseDialog: false,
+      newCourse: {
+        name: '',
+        image: '',
+      },
+    }
+  },
+  computed: {
+    isFormValid() {
+      return !!this.newCourse.name;
     }
   },
   created() {
     !useAppStore().isLogged && router.push('/login')
-    
+
   },
   methods: {
+    createDialogCourse() {
+      this.showCreateCourseDialog = true;
+
+    },
+    createCourse(){
+      let newId = Date.now()
+      useСoursesStore().addCourse(newId,this.newCourse.name,this.newCourse.image)
+      this.showCreateCourseDialog = false;
+    },
     checkResult: (id: number) => {
       console.log(id)
     },
     chartData(id: number): object {
-      
+
 
 
       let tests: Array<object> = this.usersCourse.find(el => el.id == id).tests;
@@ -94,7 +143,7 @@ export default {
         diffData[d] = diffData[d] / diffCount
 
       }
-      let arrColor = {60:'#18222C',75:"#586198",85:"#7FA8D4",101:"#C370CA"}
+      let arrColor = { 60: '#18222C', 75: "#586198", 85: "#7FA8D4", 101: "#C370CA" }
       for (let key in diffData) {
         chartData.labels.push(key)
         chartData.datasets[0].data.push(diffData[key])
