@@ -24,7 +24,7 @@
                 <div>
                     <v-checkbox v-model="teacher" label="Я учитель"></v-checkbox>
                 </div>
-                <v-btn block class="mt-4 " color="blue" size="large" variant="tonal" @click="registration">
+                <v-btn block class="mt-4 " color="blue" size="large" variant="tonal" @click="reg">
                     Зарегистироваться
                 </v-btn>
 
@@ -40,17 +40,12 @@
 
 <script lang="ts">
 
-interface User{
-    id:string,
-    fullName: string,
-    email: string,
-    password: string,
-    teacher: boolean     
-}
 
 import { useAppStore } from "@/store/AppStore"
 import router from "@/router/index"
 import {firebaseAPI} from "@/api/firebaseApi"
+import {registration} from "../http/userAPI"
+import { STUDENT_ROLE, TEACHER_ROLE } from "../http/userAPI";
 export default {
     data: function () {
         return ({
@@ -71,29 +66,33 @@ export default {
         })
     },
     created() {
+        
         useAppStore().isLogged && router.push('/')
     },
     methods: {
-        registration: async function () {
+        reg: async function () {
             if (this.fullName == "" || this.email == "") {
                 return
             }
             if ((this.passwordTop != this.passwordBottom) || this.passwordTop == "") {
                 return
             }
-            let newId = String(Date.now())
-            let newUser: User = {
-                id:newId,
-                email: this.email,
-                fullName: this.fullName,
-                password: this.passwordTop,
-                teacher: this.teacher,
-            }
-            firebaseAPI.addNewUser(newUser);    
+            
+            const response = await registration(this.email,this.fullName,this.passwordBottom,this.teacher ? TEACHER_ROLE : STUDENT_ROLE)
+            console.log(response)
+            // let newId = String(Date.now())
+            // let newUser: User = {
+            //     id:newId,
+            //     email: this.email,
+            //     fullName: this.fullName,
+            //     password: this.passwordTop,
+            //     teacher: this.teacher,
+            // }
+            // firebaseAPI.addNewUser(newUser);    
 
-            useAppStore().setIsLogged(true)
-            useAppStore().setIsActiveUser(newId,this.fullName)
-            router.push('/')
+            // useAppStore().setIsLogged(true)
+            // useAppStore().setIsActiveUser(newId,this.fullName)
+            // router.push('/')
         },
     }
 }

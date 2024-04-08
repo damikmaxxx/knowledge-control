@@ -33,6 +33,15 @@ import { useAppStore } from "@/store/AppStore"
 import { useUserStore } from "@/store/UserStore"
 import router from "@/router/index"
 import { firebaseAPI } from "@/api/firebaseApi"
+import {login,TEACHER_ROLE} from "../http/userAPI"
+import { AxiosResponse } from "axios"
+
+interface User {
+    id:string;
+    full_name: string;
+    role: string;
+    // Другие поля, если они есть
+}
 
 export default {
     data: () => ({
@@ -66,32 +75,20 @@ export default {
                 this.showNotification("Неправильный логин или пароль", "error");
                 return
             }
-            firebaseAPI.getUsersByEmailAndPass(this.email, this.password).then(value => {
-                let dateInfo = value[0]
-                let id = value[1]
-                console.log(value)
-                if (dateInfo.no == "") {
-                    console.log("Неправильный ввод")
-                    this.showNotification("Неправильный логин или пароль", "error");
-                    return
-                }
-                else {
-                    console.log(dateInfo.results)
-                    for(let results in dateInfo.results){
-                        console.log(results)
-                        for(let r in dateInfo.results[results]){
-                            console.log(r)
-                            useUserStore().addCompleteTest(results,r,dateInfo.results[results][r])
-                        }
-                    }
-                    useAppStore().setIsLogged(true)
-                    useAppStore().setIsActiveUser(id,dateInfo.fullName,dateInfo.teacher)
-                    router.push('/')
-                }
-                useUserStore
+            try{
+                const response: AxiosResponse<User> = await login(this.email,this.password)
+                const user: any = response;
+                console.log(response)
+                useAppStore().setIsLogged(true)
+                useAppStore().setIsActiveUser(user.id,user.full_name,user.role === TEACHER_ROLE ? true : false)
+                router.push('/')
+            }
+            catch(e: any){
+                console.log(e.response.data.message)
             }
 
-            );
+
+
 
 
         },

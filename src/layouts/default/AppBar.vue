@@ -16,12 +16,12 @@
             </v-col>
           </template>
 
-          <v-card min-width="300">
-            <v-btn class="ma-5" style="width: 100%;" text="Выйти с аккаунта" @click="exitAccount">
-              Button
-            </v-btn>
-          </v-card>
-        </v-menu> -->
+<v-card min-width="300">
+  <v-btn class="ma-5" style="width: 100%;" text="Выйти с аккаунта" @click="exitAccount">
+    Button
+  </v-btn>
+</v-card>
+</v-menu> -->
         <v-menu v-if="isLogged">
           <template v-slot:activator="{ props }">
             <v-col style="cursor: pointer;" cols="4" offset="8" offset-sm="4" offset-xs="4" v-bind="props">
@@ -40,13 +40,16 @@
 </template>
 
 <script lang="ts">
+import { TEACHER_ROLE, check } from "@/http/userAPI"
+import router from "@/router"
 import { useAppStore } from "@/store/AppStore"
-import { useUserStore } from "@/store/UserStore"
-import { useRouter } from 'vue-router'
+import { useUserStore } from "@/store/UserStore";
+import { useRouter } from "vue-router";
+
 export default {
   data: () => ({
-    router: useRouter()
-    
+    router: useRouter(),
+    isLoading:true,
   }),
   computed: {
     fullName() {
@@ -58,7 +61,6 @@ export default {
   },
   methods: {
     exitAccount() {
-      console.log(this.router)
       useAppStore().setIsLogged(false)
       useUserStore().clearCourses()
       this.router.push('/login')

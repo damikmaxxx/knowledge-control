@@ -29,7 +29,9 @@ export default defineConfig({
       },
     }),
   ],
-  define: { 'process.env': {} },
+  define: { 'process.env': {
+    VUE_APP_API_URL:"http://localhost:5000/"
+  } },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))

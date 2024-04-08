@@ -2,7 +2,7 @@
     <v-container class="fill-height">
         <v-row no-gutters justify="center">
             <v-col cols="12" sm="4" v-if="testFase == allTypesFases[0]">
-                <v-card class="mx-auto mb-8" min-height="200" max-width="454">
+                <v-card class="mx-auto mb-8" min-height="200" min-width="404">
 
                     <v-card-item>
                         <div>
@@ -11,9 +11,10 @@
                             <div class="text-h6 mb-1">
                                 {{ courseName }}
                             </div>
-                            <div class="text-caption"><b>Курс:</b> Математика</div>
-                            <div class="text-caption"><b>Ограничение по времени:</b> 10 минут</div>
-                            <div class="text-caption"><b>Количество вопросов:</b> 15</div>
+                            <div class="text-caption"><b>Курс:</b> {{ courseName }}</div>
+                            <div class="text-caption"><b>Ограничение по времени:</b> {{ timeTest.time/60 }} минуты</div>
+                            <div class="text-caption"><b>Количество вопросов:</b> {{ test.questions.length }}</div>
+                            <div class="text-caption"><b>Автор:</b>{{ creator }}</div>
                             <div
                                 style=" width: 100%; display: flex; justify-content: space-between; position: absolute; bottom: 0px; left:0px; padding:1rem;">
                                 <v-btn min-width="200" @click="goBack">
@@ -29,22 +30,24 @@
                 </v-card>
 
             </v-col>
-            <v-col cols="12" sm="4" v-if="testFase == allTypesFases[1] && numbers != 0">
-                <v-card class="mx-auto mb-8" min-height="200" max-width="454">
+            <v-col cols="12" sm="4" class="mx-8" v-if="testFase == allTypesFases[1] && numbers != 0" max-width="554">
+                <v-card class="mx-auto mb-8" min-height="200" max-width="554">
 
                     <v-card-item>
                         <div>
                             <div class="text-overline mb-1">
                             </div>
                             <div class="text-h6 mb-1">
-                                {{ selectedQuestion()?.question }}
+                                {{ selectedQuestion()?.text }}
                             </div>
                             <v-text-field label="" v-model="inputAnswer" hide-details></v-text-field>
                             <div class="mt-3 mb-3" style="display: flex; justify-content: end; ">
-                                <v-btn min-width="200" @click="nextQuestion" v-if="activeQuestion != test.questions.length">
+                                <v-btn min-width="200" @click="nextQuestion"
+                                    v-if="activeQuestion != test.questions.length">
                                     Следующий вопрос
                                 </v-btn>
-                                <v-btn min-width="200" @click="endTestFunc" v-if="activeQuestion == test.questions.length">
+                                <v-btn min-width="200" @click="endTestFunc"
+                                    v-if="activeQuestion == test.questions.length">
                                     Завершить тест
                                 </v-btn>
                             </div>
@@ -66,7 +69,7 @@
                             <div class="text-h6 mb-1">
                                 Результаты теста
                             </div>
-                            <div class="text-caption"><b>Тест:</b> дискретка</div>
+                            <div class="text-caption"><b>Тест:</b> {{ testName }}</div>
                             <BarChart class="mb-15" id="my-chart-id" :options="chartOptions" :data="chartData()" />
                             <div
                                 style=" width: 100%; display: flex; justify-content: space-between; position: absolute; bottom: 0px; left:0px; padding:1rem;">
@@ -80,24 +83,27 @@
                 </v-card>
 
             </v-col>
-        </v-row>
-        <v-card v-if="testFase == allTypesFases[1] && numbers != 0" class=" text-center pa-3 " style="overflow-y: auto;"
-            min-height="400" max-height="400" max-width="350">
-            <div class="text-h6 mb-4 mt-2">
-                Навигация между вопросами
-            </div>
-            <v-row>
+            <v-card v-if="testFase == allTypesFases[1] && numbers != 0" class=" text-center pa-3 "
+                style="overflow-y: auto;" min-height="400" max-height="400" max-width="350">
+                <div class="text-h6 mb-4 mt-2"><b>Времени осталось:</b> {{ timeSample }}</div>
+                <div class="text-h6 mb-4 mt-2">
+                    Навигация между вопросами
+                </div>
+                <v-row>
 
-                <v-col cols="3" v-for="number in getNumbersArray" :key="number">
-                    <v-btn @click="changeActiveQuestion(number)">{{ number }}</v-btn>
-                </v-col>
-            </v-row>
-        </v-card>
+                    <v-col cols="3" v-for="number in getIndexArray" :key="number">
+                        <v-btn @click="changeActiveQuestion(number)">{{ number }}</v-btn>
+                    </v-col>
+                </v-row>
+                <v-btn class="mt-4" @click="endTestFunc">Завершить тест</v-btn>
+            </v-card>
+        </v-row>
+
     </v-container>
 </template>
 <style></style>
 
-  
+
 <script lang="ts">
 import { useAppStore } from "@/store/AppStore"
 import { useСoursesStore } from "@/store/СoursesStore"
@@ -106,6 +112,7 @@ import { useRouter, useRoute } from 'vue-router'
 import router from "@/router/index"
 import BarChart from '@/components/BarChart.vue';
 import { firebaseAPI } from "@/api/firebaseApi"
+import { fetchQuestionTests, fetchInfoTest, CreateResults, fetchResultsTest } from "@/http/testsAPI"
 
 interface Course {
     id: number,
@@ -158,6 +165,12 @@ export default {
             questions: [],
         },
         courseName: "",
+        timeTest: {
+            time: 10,
+            timer: undefined as Timeout | undefined,
+        },
+        testName: "",
+        creator: "",
         userAnwsers: {},
         results: {},
         allTypesFases: ["start", "solve", "end"],
@@ -175,30 +188,66 @@ export default {
         usersCourse: useUserStore().courses,
     }),
     created() {
-        // firebaseAPI.addNewTest(3, 2)
-
-
-        firebaseAPI.getQuestions(Number(this.route.params.course), Number(this.route.params.test)).then((result: RequestTest) => {
-            this.test.time = result.time;
-            this.test.questions = result.questions;
-            this.numbers = result.questions.length;
-        });
-        console.log(this.route.params)
-        console.log()
-        !useAppStore().isLogged && router.push('/')
+        this.fetchData()
         this.getCourseInfo()
+
+        
     },
     computed: {
-        getNumbersArray(): Array<number> {
-            return Array.from({ length: this.numbers }, (_, index) => index + 1);
+        getIndexArray(): Array<string> {
+            return this.test.questions.map(el => el.index)
+            // return Array.from({ length: this.numbers }, (_, index) => index + 1);
+        },
+        timeSample(): string {
+            let minutes = Math.floor(this.timeTest.time / 60);
+            let seconds = this.timeTest.time % 60;
+
+            // Добавляем нуль к секундам, если они меньше 10
+            let secondsString = seconds < 10 ? "0" + seconds : seconds;
+
+            let timeSample = minutes + ":" + secondsString;
+
+            return timeSample
         }
     },
     methods: {
+        async fetchData() {
+            try {
+                const questions = await fetchQuestionTests(Number(this.route.params.course), Number(this.route.params.test))
+                const { creator, name, courseName } = await fetchInfoTest(Number(this.route.params.course), Number(this.route.params.test))
+                this.courseName = courseName
+                this.testName = name
+                console.log(questions)
+                this.test.questions = questions
+                this.creator = creator
+                this.numbers = questions.length
+                this.timeTest.time = this.test.questions.reduce((sum, q) => {
+                    return sum + parseInt(q.complexity) * 60
+                },0)
+            } catch (error) {
+                console.error("Error fetching tests:", error);
+            }
+        },
         startTestFunc() {
             this.testFase = this.allTypesFases[1]
+            this.startTimer();
+        },
+        startTimer() {
+            this.timeTest.timer = setInterval(() => {
+                this.timeTest.time -= 1
+                if (this.timeTest.time <= 0) {
+                    clearInterval(this.timeTest.timer);
+                    // this.endTestFunc()
+                }
+            }, 1000)
         },
         goBack() {
-            router.push(`/course/${this.route.params.course}`)
+            fetchResultsTest().then(data => {
+                useUserStore().setTestResults(data)
+                console.log(data)
+                // this.courses = useUserStore().courses
+            });
+            router.go(-1);
         },
         getCourseInfo() {
             this.route.params.course
@@ -215,58 +264,65 @@ export default {
             this.inputAnswer = this.userAnwsers[this.activeQuestion]
         },
         selectedQuestion() {
-            return this.test.questions.find(el => el.num == this.activeQuestion)
+            console.log(this.test.questions.find(el => el.index == this.activeQuestion))
+            return this.test.questions.find(el => el.index == this.activeQuestion)
+
         },
         endTestFunc() {
             this.userAnwsers[this.activeQuestion] = this.inputAnswer
 
             this.calculationResults()
-            firebaseAPI.addNewResults(this.results, Number(useAppStore().id), Number(this.route.params.course), Number(this.route.params.test))
+            // firebaseAPI.addNewResults(this.results, Number(useAppStore().id), Number(this.route.params.course), Number(this.route.params.test))
             this.testFase = this.allTypesFases[2]
-            let id = useAppStore().id;
-            firebaseAPI.getUsersRewards(Number(id)).then((value) => {
-                for (let results in value) {
-                    console.log(results)
-                    for (let r in value[results]) {
-                        console.log(r)
-                        useUserStore().addCompleteTest(results, r, value[results][r])
-                    }
-                }
-            })
+            const date = {
+                "testId": this.route.params.test,
+                "resultsCharacteristic": this.results
+            }
+            console.log(date)
+            console.log(CreateResults(date))
+
+            // let id = useAppStore().id;
+            // firebaseAPI.getUsersRewards(Number(id)).then((value) => {
+            //     for (let results in value) {
+            //         console.log(results)
+            //         for (let r in value[results]) {
+            //             console.log(r)
+            //             useUserStore().addCompleteTest(results, r, value[results][r])
+            //         }
+            //     }
+            // })
         },
         calculationResults() {
             let allRewards = {}
             let userRewards = {}
             this.test.questions.forEach(el => {
-                for (let key in el.rewards) {
 
-                    if (allRewards[key] == undefined) {
-                        allRewards[key] = el.rewards[key]
-                        userRewards[key] = 0
-                    }
-                    else {
-                        allRewards[key] += el.rewards[key]
-                    }
+                if (allRewards[el.characteristicId] == undefined) {
+                    allRewards[el.characteristicId] = el.complexity
+                    userRewards[el.characteristicId] = 0
+                }
+                else {
+
+                    allRewards[el.characteristicId] += el.complexity
+                }
+            });
+
+            this.test.questions.forEach(el => {
+                for (let userAnswer in this.userAnwsers) {
+                    if (this.userAnwsers[userAnswer] == el.answer)
+
+                        userRewards[el.characteristicId] += el.complexity
 
                 }
             });
-            for (let key in this.userAnwsers) {
-                let questionKey = this.test.questions.find(el => el.num == key)
-                if (this.userAnwsers[key] == undefined || questionKey == undefined) continue
-                if (questionKey.correctAnswer.find(el => el == this.userAnwsers[key])) {
-                    let rewards = this.test.questions.find(el => el.num == key).rewards
-                    for (let key in rewards) {
-                        userRewards[key] += rewards[key]
 
-                    }
-                }
-            }
-            console.log(allRewards,userRewards)
+            console.log(allRewards, userRewards)
             for (let key in userRewards) {
-                userRewards[key] = userRewards[key] / allRewards[key] * 100
+                userRewards[key] = Math.round(userRewards[key] / allRewards[key] * 100)
 
             }
             this.results = userRewards
+            console.log(this.results)
         },
         chartData(): object {
 
@@ -281,8 +337,9 @@ export default {
                 ]
             }
             let arrColor = { 60: '#18222C', 75: "#586198", 85: "#7FA8D4", 101: "#C370CA" }
+            const relationCharacteristic = { 1: "UMN", 2: "CHL", 3: "POL" }
             for (let key in this.results) {
-                chartData.labels.push(key)
+                chartData.labels.push(relationCharacteristic[key])
                 chartData.datasets[0].data.push(this.results[key])
                 for (let points in arrColor) {
                     if (this.results[key] < Number(points)) {
@@ -300,4 +357,3 @@ export default {
 }
 
 </script>
-  
